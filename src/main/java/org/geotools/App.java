@@ -85,35 +85,57 @@ public class App
 
         ListFeatureCollection collection = new ListFeatureCollection(featureSource.getSchema());
         ListFeatureCollection collectionMBRdatavalues = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collectionRootdatavalues = new ListFeatureCollection(featureSource.getSchema());
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
+        Rtree t = new Rtree(3);
+        Polygon rootPolygon = gb.box(all_features.getBounds().getMinX(),
+                all_features.getBounds().getMinY(),
+                all_features.getBounds().getMaxX(),
+                all_features.getBounds().getMaxY()
+        );
+        featureBuilder.add(rootPolygon);
+        collectionRootdatavalues.add(featureBuilder.buildFeature(null));
 
-        //TODO replace with create R-tree and R-tree search
+        int counter = 0;
+        String id = "L"+counter;
+        Node root = new Node(3, id, rootPolygon);
+        //t.addLeaf(root, id, rootPolygon);
         try ( SimpleFeatureIterator iterator = all_features.features() ){
             while( iterator.hasNext()){
+
                 // Add MBR
                 SimpleFeature feature = iterator.next();
-                MultiPolygon polygonComplex = (MultiPolygon) feature.getDefaultGeometry();
+                MultiPolygon polygonComplex = (MultiPolygon) feature.getDefaultGeometry();//leaf
 
                 Polygon polygonMBD = gb.box(feature.getBounds().getMinX(),
                         feature.getBounds().getMinY(),
                         feature.getBounds().getMaxX(),
                         feature.getBounds().getMaxY()
                 );
+                /*
                 featureBuilder.add(polygonMBD);
 
                 collectionMBRdatavalues.add(featureBuilder.buildFeature(null));
-                /*
-                SimpleFeature feature = iterator.next();
 
-                MultiPolygon polygon = (MultiPolygon) feature.getDefaultGeometry();
-
-                if (polygon != null && polygon.contains(p)) {//add if leaf
+                if (polygonComplex != null && polygonComplex.contains(p)) {//add if leaf
                     target = feature;
                     break;
                 }
                 */
             }
         }
+        /*
+        Node n = t.getNodes().get(0);
+        while (n != root){
+
+        }
+        for (Node n: t.getChildren()){
+            featureBuilder.add(n.getPolygon());
+
+            collectionMBRdatavalues.add(featureBuilder.buildFeature(null));
+
+        }
+        */
 
 
         if (target == null)
@@ -136,12 +158,10 @@ public class App
         featureBuilder.add(c);
         collection.add(featureBuilder.buildFeature(null));
 
-        Style style2 = SLD.createLineStyle(Color.red, 2.0f);
-        Style style3 = SLD.createLineStyle(Color.green, 2.0f);
-        Layer layer2 = new FeatureLayer(collection, style2);
-        Layer layer3 = new FeatureLayer(collectionMBRdatavalues, style3);
-        map.addLayer(layer2);
-        map.addLayer(layer3);
+        Style style2 = SLD.createLineStyle(Color.red, 2.0f); Layer layer2 = new FeatureLayer(collection, style2);
+        Style style3 = SLD.createLineStyle(Color.green, 2.0f); Layer layer3 = new FeatureLayer(collectionMBRdatavalues, style3);
+        Style style4 = SLD.createLineStyle(Color.blue, 2.0f); Layer layer4 = new FeatureLayer(collectionRootdatavalues, style4);
+        map.addLayer(layer2); map.addLayer(layer3);  map.addLayer(layer4);
 
         // Now display the map
         JMapFrame.showMap(map);
