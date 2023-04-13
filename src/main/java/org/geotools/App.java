@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.atomic.DoubleAdder;
 
 public class App 
 {
@@ -88,7 +89,7 @@ public class App
         ListFeatureCollection collectionRootdatavalues = new ListFeatureCollection(featureSource.getSchema());
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
         Rtree t = new Rtree(3);
-        Polygon rootPolygon = gb.box(all_features.getBounds().getMinX(),
+        /*Polygon rootPolygon = gb.box(all_features.getBounds().getMinX(),
                 all_features.getBounds().getMinY(),
                 all_features.getBounds().getMaxX(),
                 all_features.getBounds().getMaxY()
@@ -100,6 +101,7 @@ public class App
         String id = "L"+counter;
         Node root = new Node(3, id, rootPolygon);
         //t.addLeaf(root, id, rootPolygon);
+        */
         try ( SimpleFeatureIterator iterator = all_features.features() ){
             while( iterator.hasNext()){
 
@@ -112,6 +114,8 @@ public class App
                         feature.getBounds().getMaxX(),
                         feature.getBounds().getMaxY()
                 );
+                Leaf leaf = new Leaf(3,feature.getID(), polygonComplex);
+                t.addLeaf(leaf,feature.getID(),polygonMBD);
                 /*
                 featureBuilder.add(polygonMBD);
 
