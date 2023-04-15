@@ -1,6 +1,7 @@
 package org.geotools;
 
 import org.geotools.geometry.jts.GeometryBuilder;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 
@@ -13,37 +14,42 @@ public class Rtree {
         this.N = N;
     }
 
-    public Node addLeaf(Node node, String label, MultiPolygon p) {
+    public Node addLeaf(Node node, String label, Geometry p) {
         if(node.isLeaf() || node.getSubnodes().get(0).isLeaf()){
             node.addNode(new Leaf(3, label, p));
         }
         else{
-            Node son_n = chooseNode(node, p);
+            Node son_n = chooseNode(node, (Polygon) p);
             Node new_node = addLeaf(son_n, label, p);
             if(new_node != null){
                 node.addNode(new_node);
             }
         }
-        expandPolygon(node.getPolygon());
+        node.setPolygon(expandPolygon(node.getPolygon(), p));
         if(node.getSubnodes().size() >= N){
             return splitQuadratic(node);
         }
         else{return null;}
     }
 
-    private void expandPolygon(Polygon p) {
+    private Polygon expandPolygon(Polygon p, Geometry p_leaf) {
         GeometryBuilder gb = new GeometryBuilder();
+        if(p == null){
+            return gb.box(this.getXcoordsMultiPoly((MultiPolygon) p_leaf)[0],
+                    this.getYcoordsMultiPoly((MultiPolygon) p_leaf)[0],
+                    this.getXcoordsMultiPoly((MultiPolygon) p_leaf)[1],
+                    this.getYcoordsMultiPoly((MultiPolygon) p_leaf)[1]);
+        }
         int minX; int maxX; int minY; int maxY;
-        minX = Math.min(this.n.getXcoords()[0], this.getXcoordsPoly(p)[0]);
-        maxX = Math.max(this.n.getXcoords()[1], this.getXcoordsPoly(p)[1]);
-        minY = Math.min(this.n.getYcoords()[0], this.getYcoordsPoly(p)[0]);
-        maxY = Math.max(this.n.getYcoords()[1], this.getYcoordsPoly(p)[1]);
-        Polygon polygonExpanded = gb.box(minX,
+        minX = Math.min(this.getXcoordsMultiPoly((MultiPolygon) p_leaf)[0], this.getXcoordsPoly(p)[0]);
+        maxX = Math.max(this.getXcoordsMultiPoly((MultiPolygon) p_leaf)[1], this.getXcoordsPoly(p)[1]);
+        minY = Math.min(this.getYcoordsMultiPoly((MultiPolygon) p_leaf)[0], this.getYcoordsPoly(p)[0]);
+        maxY = Math.max(this.getYcoordsMultiPoly((MultiPolygon) p_leaf)[1], this.getYcoordsPoly(p)[1]);
+        return gb.box(minX,
                 minY,
                 maxX,
                 maxY
         );
-        this.n.setPolygon(polygonExpanded);
     }
 
     private Node chooseNode(Node node, Polygon p) {
@@ -81,5 +87,17 @@ public class Rtree {
 
     private int[] getYcoordsPoly(Polygon p){
         return new int[]{(int) p.getCoordinates()[0].getY(), (int) p.getCoordinates()[1].getY()};
+    }
+
+    private int[] getXcoordsMultiPoly(MultiPolygon p){
+        return new int[]{(int) p.getBoundary().getEnvelope().getCoordinates()[0].getX(), (int) p.getBoundary().getEnvelope().getCoordinates()[2].getX()};
+    }
+
+    private int[] getYcoordsMultiPoly(MultiPolygon p){
+        return new int[]{(int) p.getBoundary().getEnvelope().getCoordinates()[0].getY(), (int) p.getBoundary().getEnvelope().getCoordinates()[1].getY()};
+    }
+
+    public Node getRoot() {
+        return n;
     }
 }

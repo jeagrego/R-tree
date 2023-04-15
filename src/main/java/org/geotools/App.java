@@ -24,8 +24,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.atomic.DoubleAdder;
 
 public class App 
@@ -84,11 +83,17 @@ public class App
         Layer layer = new FeatureLayer(featureSource, style);
         map.addLayer(layer);
 
-        ListFeatureCollection collection = new ListFeatureCollection(featureSource.getSchema());
-        ListFeatureCollection collectionMBRdatavalues = new ListFeatureCollection(featureSource.getSchema());
-        ListFeatureCollection collectionRootdatavalues = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collectionTarget = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collectionLeaves = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection1 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection2 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection3 = new ListFeatureCollection(featureSource.getSchema());
+        ArrayList<ListFeatureCollection> collections = new ArrayList<>();
+        collections.add(collectionTarget); collections.add(collectionLeaves); collections.add(collection1);
+        collections.add(collection2); collections.add(collection3);
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
-        Rtree t = new Rtree(3);
+        int maxLeaves = 3;
+        Rtree t = new Rtree(maxLeaves);
         /*Polygon rootPolygon = gb.box(all_features.getBounds().getMinX(),
                 all_features.getBounds().getMinY(),
                 all_features.getBounds().getMaxX(),
@@ -114,8 +119,8 @@ public class App
                         feature.getBounds().getMaxX(),
                         feature.getBounds().getMaxY()
                 );
-                Leaf leaf = new Leaf(3,feature.getID(), polygonComplex);
-                t.addLeaf(leaf,feature.getID(),polygonMBD);
+                Node n = new Node(3, "N"+feature.getID(), polygonMBD);
+                t.addLeaf(n, feature.getID(), polygonComplex);
                 /*
                 featureBuilder.add(polygonMBD);
 
@@ -128,18 +133,30 @@ public class App
                 */
             }
         }
-        /*
-        Node n = t.getNodes().get(0);
-        while (n != root){
 
+        Node parent = t.getRoot();
+        Queue<Node> nextparents = new LinkedList<>();
+        nextparents.add(parent);
+        int counterLeaves = 0; int counterIndex = 2;
+        while (!nextparents.isEmpty()){
+            System.out.println("child");
+            ArrayList<Node> children = parent.getSubnodes();
+            for (Node child : children) {
+                featureBuilder.add(child.getPolygon());
+                collections.get(counterIndex).add(featureBuilder.buildFeature(null));
+                System.out.println("child added to featureBuilder");
+                if (child.getSubnodes().size() != 0 && child.getSubnodes().get(0).isMBR()) {
+                    nextparents.add(child);
+                }
+            }
+            parent = nextparents.remove();
+            counterLeaves++;
+            if(counterLeaves >= maxLeaves){
+                counterLeaves = 0;
+                counterIndex++;
+            }
         }
-        for (Node n: t.getChildren()){
-            featureBuilder.add(n.getPolygon());
 
-            collectionMBRdatavalues.add(featureBuilder.buildFeature(null));
-
-        }
-        */
 
 
         if (target == null)
@@ -155,17 +172,20 @@ public class App
 
 
         // Add target polygon
-        collection.add(target);
+        collectionTarget.add(target);
 
         // Add Point
         Polygon c= gb.circle(p.getX(), p.getY(), all_features.getBounds().getWidth()/200,10);
         featureBuilder.add(c);
-        collection.add(featureBuilder.buildFeature(null));
+        collectionTarget.add(featureBuilder.buildFeature(null));
 
-        Style style2 = SLD.createLineStyle(Color.red, 2.0f); Layer layer2 = new FeatureLayer(collection, style2);
-        Style style3 = SLD.createLineStyle(Color.green, 2.0f); Layer layer3 = new FeatureLayer(collectionMBRdatavalues, style3);
-        Style style4 = SLD.createLineStyle(Color.blue, 2.0f); Layer layer4 = new FeatureLayer(collectionRootdatavalues, style4);
-        map.addLayer(layer2); map.addLayer(layer3);  map.addLayer(layer4);
+        ArrayList<Color> colors = new ArrayList<>();
+        colors.add(Color.RED);colors.add(Color.BLUE);colors.add(Color.GREEN);
+        colors.add(Color.YELLOW);colors.add(Color.BLACK);colors.add(Color.ORANGE);
+        for (int i = 0; i<collections.size(); i++){
+            style = SLD.createLineStyle(colors.get(i), 2.0f); layer = new FeatureLayer(collections.get(i), style);
+            map.addLayer(layer);
+        }
 
         // Now display the map
         JMapFrame.showMap(map);
