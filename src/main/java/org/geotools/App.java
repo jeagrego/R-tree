@@ -107,6 +107,7 @@ public class App
         Node root = new Node(3, id, rootPolygon);
         //t.addLeaf(root, id, rootPolygon);
         */
+        Node root = t.getRoot();
         try ( SimpleFeatureIterator iterator = all_features.features() ){
             while( iterator.hasNext()){
 
@@ -119,8 +120,7 @@ public class App
                         feature.getBounds().getMaxX(),
                         feature.getBounds().getMaxY()
                 );
-                Node n = new Node(3, "N"+feature.getID(), polygonMBD);
-                t.addLeaf(n, feature.getID(), polygonComplex);
+                t.addLeaf(root, feature.getID(), polygonComplex);
                 /*
                 featureBuilder.add(polygonMBD);
 
@@ -137,14 +137,14 @@ public class App
         Node parent = t.getRoot();
         Queue<Node> nextparents = new LinkedList<>();
         nextparents.add(parent);
+        featureBuilder.add(parent.getPolygon());
+        collections.get(3).add(featureBuilder.buildFeature(null));
         int counterLeaves = 0; int counterIndex = 2;
         while (!nextparents.isEmpty()){
-            System.out.println("child");
             ArrayList<Node> children = parent.getSubnodes();
             for (Node child : children) {
                 featureBuilder.add(child.getPolygon());
                 collections.get(counterIndex).add(featureBuilder.buildFeature(null));
-                System.out.println("child added to featureBuilder");
                 if (child.getSubnodes().size() != 0 && child.getSubnodes().get(0).isMBR()) {
                     nextparents.add(child);
                 }

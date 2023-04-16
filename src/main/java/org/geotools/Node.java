@@ -1,5 +1,7 @@
 package org.geotools;
 
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.ArrayList;
@@ -14,16 +16,16 @@ public class Node {
         this.MBR = p;
     }
 
-    public int[] getXcoords(){
+    public double[] getXcoords(){
         if (isMBR()) {
-            return new int[]{(int) MBR.getCoordinates()[0].getX(), (int) MBR.getCoordinates()[2].getX()};
+            return new double[]{MBR.getCoordinates()[0].getX(), MBR.getCoordinates()[2].getX()};
         }
         return null;
     }
 
-    public int[] getYcoords(){
+    public double[] getYcoords(){
         if (isMBR()) {
-            return new int[]{(int) MBR.getCoordinates()[0].getY(), (int) MBR.getCoordinates()[1].getY()};
+            return new double[]{MBR.getCoordinates()[0].getY(), MBR.getCoordinates()[1].getY()};
         }
         return null;
     }
