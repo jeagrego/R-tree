@@ -7,11 +7,13 @@ import org.locationtech.jts.geom.Polygon;
 import java.util.Arrays;
 
 public class Leaf extends Node{
+    private String name;
     private final MultiPolygon complexPolygon;
 
     public Leaf(int maxN, String id, MultiPolygon p) {
-        super(maxN, id, null);
+        super(maxN, null);
         this.complexPolygon = p;
+        this.name = id;
         super.setPolygon(createMBDfromMultiPolygon(p));
     }
 
@@ -33,5 +35,9 @@ public class Leaf extends Node{
 
     public MultiPolygon getComplexPolygon(){
         return this.complexPolygon;
+    }
+
+    public String getName(){
+        return this.name;
     }
 }

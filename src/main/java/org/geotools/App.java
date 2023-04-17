@@ -88,39 +88,35 @@ public class App
         ListFeatureCollection collection1 = new ListFeatureCollection(featureSource.getSchema());
         ListFeatureCollection collection2 = new ListFeatureCollection(featureSource.getSchema());
         ListFeatureCollection collection3 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection4 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection5 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection6 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection7 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection8 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection9 = new ListFeatureCollection(featureSource.getSchema());
+        ListFeatureCollection collection10 = new ListFeatureCollection(featureSource.getSchema());
+
         ArrayList<ListFeatureCollection> collections = new ArrayList<>();
         collections.add(collectionTarget); collections.add(collectionLeaves); collections.add(collection1);
-        collections.add(collection2); collections.add(collection3);
+        collections.add(collection2); collections.add(collection3); collections.add(collection4);
+        collections.add(collection5); collections.add(collection6); collections.add(collection7);
+        collections.add(collection8); collections.add(collection9); collections.add(collection10);
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
         int maxLeaves = 3;
         Rtree t = new Rtree(maxLeaves);
-        /*Polygon rootPolygon = gb.box(all_features.getBounds().getMinX(),
-                all_features.getBounds().getMinY(),
-                all_features.getBounds().getMaxX(),
-                all_features.getBounds().getMaxY()
-        );
-        featureBuilder.add(rootPolygon);
-        collectionRootdatavalues.add(featureBuilder.buildFeature(null));
 
-        int counter = 0;
-        String id = "L"+counter;
-        Node root = new Node(3, id, rootPolygon);
-        //t.addLeaf(root, id, rootPolygon);
-        */
         Node root = t.getRoot();
+        int counterDEBUG = 0;
         try ( SimpleFeatureIterator iterator = all_features.features() ){
             while( iterator.hasNext()){
 
                 // Add MBR
                 SimpleFeature feature = iterator.next();
                 MultiPolygon polygonComplex = (MultiPolygon) feature.getDefaultGeometry();//leaf
+                //featureBuilder.add(polygonComplex);
+                //collectionLeaves.add(featureBuilder.buildFeature(null));
 
-                Polygon polygonMBD = gb.box(feature.getBounds().getMinX(),
-                        feature.getBounds().getMinY(),
-                        feature.getBounds().getMaxX(),
-                        feature.getBounds().getMaxY()
-                );
-                t.addLeaf(root, feature.getID(), polygonComplex);
+                t.addLeaf(root, feature.getProperty("NAME_EN").toString(), polygonComplex);
                 /*
                 featureBuilder.add(polygonMBD);
 
@@ -131,33 +127,15 @@ public class App
                     break;
                 }
                 */
-            }
-        }
-
-        Node parent = t.getRoot();
-        Queue<Node> nextparents = new LinkedList<>();
-        nextparents.add(parent);
-        featureBuilder.add(parent.getPolygon());
-        collections.get(3).add(featureBuilder.buildFeature(null));
-        int counterLeaves = 0; int counterIndex = 2;
-        while (!nextparents.isEmpty()){
-            ArrayList<Node> children = parent.getSubnodes();
-            for (Node child : children) {
-                featureBuilder.add(child.getPolygon());
-                collections.get(counterIndex).add(featureBuilder.buildFeature(null));
-                if (child.getSubnodes().size() != 0 && child.getSubnodes().get(0).isMBR()) {
-                    nextparents.add(child);
+                System.out.println(feature.getProperty("NAME_EN"));
+                counterDEBUG++;
+                if (counterDEBUG == 15){
+                    break;
                 }
             }
-            parent = nextparents.remove();
-            counterLeaves++;
-            if(counterLeaves >= maxLeaves){
-                counterLeaves = 0;
-                counterIndex++;
-            }
         }
-
-
+        //DEBUG
+        showAllNodesAndLeaves(collections, featureBuilder, maxLeaves, t);
 
         if (target == null)
             System.out.println("Point not in any polygon!");
@@ -180,8 +158,10 @@ public class App
         collectionTarget.add(featureBuilder.buildFeature(null));
 
         ArrayList<Color> colors = new ArrayList<>();
-        colors.add(Color.RED);colors.add(Color.BLUE);colors.add(Color.GREEN);
-        colors.add(Color.YELLOW);colors.add(Color.BLACK);colors.add(Color.ORANGE);
+        colors.add(Color.RED);colors.add(Color.LIGHT_GRAY);colors.add(Color.BLUE);
+        colors.add(Color.GREEN);colors.add(Color.GRAY);colors.add(Color.ORANGE);
+        colors.add(Color.YELLOW);colors.add(Color.CYAN);colors.add(Color.LIGHT_GRAY);
+        colors.add(Color.MAGENTA);colors.add(Color.PINK);colors.add(Color.DARK_GRAY);
         for (int i = 0; i<collections.size(); i++){
             style = SLD.createLineStyle(colors.get(i), 2.0f); layer = new FeatureLayer(collections.get(i), style);
             map.addLayer(layer);
@@ -190,5 +170,31 @@ public class App
         // Now display the map
         JMapFrame.showMap(map);
 
+    }
+
+    private static void showAllNodesAndLeaves(ArrayList<ListFeatureCollection> collections, SimpleFeatureBuilder featureBuilder, int maxLeaves, Rtree t) {
+        Node parent = t.getRoot();
+        Queue<Node> nextparents = new LinkedList<>();
+        Queue<Integer> colorIndexParent = new LinkedList<>();
+        nextparents.add(parent);
+        featureBuilder.add(parent.getPolygon());
+        collections.get(3).add(featureBuilder.buildFeature(null));
+        int counterIndex = 4; colorIndexParent.add(counterIndex);
+        while (!nextparents.isEmpty()){
+            ArrayList<Node> children = parent.getSubnodes();
+            for (Node child : children) {
+                featureBuilder.add(child.getPolygon());
+                collections.get(counterIndex).add(featureBuilder.buildFeature(null));
+                if (child.getSubnodes().size() != 0) {
+                    nextparents.add(child);
+                    colorIndexParent.add(counterIndex+1);
+                }
+            }
+            parent = nextparents.remove();
+            counterIndex = colorIndexParent.remove();
+            if(counterIndex>=12){
+                counterIndex = 2;
+            }
+        }
     }
 }
