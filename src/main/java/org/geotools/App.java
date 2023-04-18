@@ -35,9 +35,9 @@ public class App
 
         //String filename="./src/main/resources/regions-20180101-shp/regions-20180101.shp";
 
-        //String filename="./src/main/resources/50m_cultural/ne_50m_admin_0_countries.shp";
+        String filename="./src/main/resources/50m_cultural/ne_50m_admin_0_countries.shp";
 
-        String filename="./src/main/resources/wb_countries_admin0_10m/WB_countries_Admin0_10m.shp";
+        //String filename="./src/main/resources/wb_countries_admin0_10m/WB_countries_Admin0_10m.shp";
 
 
         File file = new File(filename);
