@@ -3,7 +3,9 @@ package org.geotools;
 import org.geotools.geometry.jts.GeometryBuilder;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.opengis.feature.simple.SimpleFeature;
 
 import java.util.Arrays;
 
@@ -29,7 +31,6 @@ public class Rtree {
         }
         node.setPolygon(expandPolygon(node.getPolygon(), (Polygon) p.getEnvelope()));
         if(node.getSubnodes().size() > N){
-            System.out.println("SPLITTING "+node.getSubnodes().size());
             return splitQuadratic(node);
         }
         else{return null;}
@@ -59,9 +60,6 @@ public class Rtree {
         double best_area = -1;
         Node best_node = node;
         for(Node child: node.getSubnodes()) {
-            if (child.getSubnodes().size() == 0 || child.getSubnodes().get(0).getSubnodes().size() ==0){
-                System.out.println("name of country to test " + ((Leaf)child.getSubnodes().get(0)).getName());
-            }
             double areaPrevious = pretendToExpandMBR(child.getPolygon(), child.getPolygon());
             double areaAfter = pretendToExpandMBR(child.getPolygon(), p);
             if(best_area== -1 || best_area>areaAfter-areaPrevious){
@@ -144,5 +142,32 @@ public class Rtree {
 
     public Node getRoot() {
         return n;
+    }
+
+    public Geometry search(Point p) {
+        if(this.getRoot().getPolygon().contains(p)){
+            return searchRecursive(this.n, p);
+        }else{return null;}
+    }
+
+    public Geometry searchRecursive(Node n, Point p) {
+        if (n.getSubnodes().size() == 0){//leaf
+            Leaf l = (Leaf) n;
+            if(l.getComplexPolygon().contains(p)){
+                return l.getComplexPolygon();
+            }else{return null;}
+        }else{//MBD
+            if(n.getPolygon().contains(p)){
+                for(Node c: n.getSubnodes()){
+                    if(c.getPolygon().contains(p)){
+                        Geometry polyFound = searchRecursive(c, p);
+                        if(polyFound != null){
+                            return polyFound;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
