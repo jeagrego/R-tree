@@ -59,7 +59,7 @@ public class App
 
         GeometryBuilder gb = new GeometryBuilder();
         //Point p = gb.point(152183, 167679);// Plaine
-        //Point p = gb.point(4.4, 50.8);//
+        //Point p = gb.point(4.4, 50.8);// Belgie
         //Point p = gb.point(58.0, 47.0);
         //Point p = gb.point(10.6,59.9);// Oslo
 
@@ -100,7 +100,7 @@ public class App
         collections.add(collection5); collections.add(collection6); collections.add(collection7);
         collections.add(collection8); collections.add(collection9); collections.add(collection10);
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
-        int maxLeaves = 5;
+        int maxLeaves = 10;
         Rtree t = new Rtree(maxLeaves);
 
         Node root = t.getRoot();
@@ -111,23 +111,25 @@ public class App
                 SimpleFeature feature = iterator.next();
                 MultiPolygon polygonComplex = (MultiPolygon) feature.getDefaultGeometry();//leaf
 
-                t.addLeaf(root, feature.getProperty("NAME_EN").toString(), polygonComplex);
+                t.addLeaf(root, feature.getAttribute("NAME_EN").toString(), polygonComplex);
                 counterDEBUG++;
-               // if (counterDEBUG == 10){
+                //if (counterDEBUG == 20){
                 //    break;
                 //}
             }
         }
         //DEBUG
         //showAllNodesAndLeaves(collections, featureBuilder, maxLeaves, t);
-        MultiPolygon polyFound = (MultiPolygon) t.search(p);
+        Leaf leafFound = t.search(p);
 
-        if (polyFound == null)
+        if (leafFound == null)
             System.out.println("Point not in any polygon!");
         else {
             // Add target polygon
+            MultiPolygon polyFound = leafFound.getComplexPolygon();
             featureBuilder.add(polyFound);
             collectionTarget.add(featureBuilder.buildFeature(null));
+            System.out.println("FOUND "+leafFound.getName());
         }
 
         // Add Point

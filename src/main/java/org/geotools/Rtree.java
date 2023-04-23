@@ -144,25 +144,25 @@ public class Rtree {
         return n;
     }
 
-    public Geometry search(Point p) {
+    public Leaf search(Point p) {
         if(this.getRoot().getPolygon().contains(p)){
             return searchRecursive(this.n, p);
         }else{return null;}
     }
 
-    public Geometry searchRecursive(Node n, Point p) {
+    public Leaf searchRecursive(Node n, Point p) {
         if (n.getSubnodes().size() == 0){//leaf
             Leaf l = (Leaf) n;
             if(l.getComplexPolygon().contains(p)){
-                return l.getComplexPolygon();
+                return l;
             }else{return null;}
         }else{//MBD
             if(n.getPolygon().contains(p)){
                 for(Node c: n.getSubnodes()){
                     if(c.getPolygon().contains(p)){
-                        Geometry polyFound = searchRecursive(c, p);
-                        if(polyFound != null){
-                            return polyFound;
+                        Leaf leafFound = searchRecursive(c, p);
+                        if(leafFound != null){
+                            return leafFound;
                         }
                     }
                 }
