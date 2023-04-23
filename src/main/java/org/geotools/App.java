@@ -72,8 +72,6 @@ public class App
         Point p = gb.point(r.nextInt((int) global_bounds.getMinX(), (int) global_bounds.getMaxX()),
                 r.nextInt((int) global_bounds.getMinY(), (int) global_bounds.getMaxY()));
 
-        SimpleFeature target=null;
-
         System.out.println(all_features.size()+" features");
 
         MapContent map = new MapContent();
@@ -102,7 +100,7 @@ public class App
         collections.add(collection5); collections.add(collection6); collections.add(collection7);
         collections.add(collection8); collections.add(collection9); collections.add(collection10);
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
-        int maxLeaves = 3;
+        int maxLeaves = 5;
         Rtree t = new Rtree(maxLeaves);
 
         Node root = t.getRoot();
@@ -110,47 +108,27 @@ public class App
         try ( SimpleFeatureIterator iterator = all_features.features() ){
             while( iterator.hasNext()){
 
-                // Add MBR
                 SimpleFeature feature = iterator.next();
                 MultiPolygon polygonComplex = (MultiPolygon) feature.getDefaultGeometry();//leaf
-                //featureBuilder.add(polygonComplex);
-                //collectionLeaves.add(featureBuilder.buildFeature(null));
 
                 t.addLeaf(root, feature.getProperty("NAME_EN").toString(), polygonComplex);
-                /*
-                featureBuilder.add(polygonMBD);
-
-                collectionMBRdatavalues.add(featureBuilder.buildFeature(null));
-
-                if (polygonComplex != null && polygonComplex.contains(p)) {//add if leaf
-                    target = feature;
-                    break;
-                }
-                */
-                System.out.println(feature.getProperty("NAME_EN"));
                 counterDEBUG++;
-                if (counterDEBUG == 15){
-                    break;
-                }
+               // if (counterDEBUG == 10){
+                //    break;
+                //}
             }
         }
         //DEBUG
-        showAllNodesAndLeaves(collections, featureBuilder, maxLeaves, t);
+        //showAllNodesAndLeaves(collections, featureBuilder, maxLeaves, t);
+        MultiPolygon polyFound = (MultiPolygon) t.search(p);
 
-        if (target == null)
+        if (polyFound == null)
             System.out.println("Point not in any polygon!");
-
         else {
-            for(Property prop: target.getProperties()) {
-                if (!Objects.equals(prop.getName().toString(), "the_geom")) {
-                    System.out.println(prop.getName()+": "+prop.getValue());
-                }
-            }
+            // Add target polygon
+            featureBuilder.add(polyFound);
+            collectionTarget.add(featureBuilder.buildFeature(null));
         }
-
-
-        // Add target polygon
-        collectionTarget.add(target);
 
         // Add Point
         Polygon c= gb.circle(p.getX(), p.getY(), all_features.getBounds().getWidth()/200,10);
