@@ -26,7 +26,7 @@ public class Node {
         return subnodes;
     }
 
-    public void addNode(Node node) {
+    public void addNode(Node node) { //possible to expand MBR at the same time
         this.subnodes.add(node);
     }
 

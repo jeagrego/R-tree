@@ -14,7 +14,7 @@ public class Rtree {
     int N=3; // max amount of leaves or nodes
 
     public Rtree(int N){
-        this.n = new Node(N, (Polygon) null);
+        this.n = new Node(N, null);
         this.N = N;
     }
 
@@ -86,24 +86,13 @@ public class Rtree {
     }
 
     private Node splitQuadratic(Node node) {
-        int i_chosen = 0; int j_chosen = 0;
-        double best_area = -1;
-        for(int i = 0; i<node.getSubnodes().size(); i++){
-            for(int j = 0; j<node.getSubnodes().size(); j++){
-                if(i != j){
-                    double area = pretendToExpandMBR(node.getSubnodes().get(i).getPolygon(), node.getSubnodes().get(j).getPolygon());
-                    if(best_area== -1 || best_area<area){
-                        best_area = area;
-                        i_chosen = i; j_chosen = j;
-                    }
-                }
-            }
-        }
+        int[] tuple_ij = QuadraticPickSeeds(node);
+        int i_chosen = tuple_ij[0]; int j_chosen = tuple_ij[1];
         Node n1 = new Node(3, node.getSubnodes().get(i_chosen).getPolygon());
         n1.addNode(node.getSubnodes().get(i_chosen));
         Node n2 = new Node(3, node.getSubnodes().get(j_chosen).getPolygon());
         n2.addNode(node.getSubnodes().get(j_chosen));
-        for(int i = 0; i<node.getSubnodes().size(); i++){
+        for(int i = 0; i<node.getSubnodes().size(); i++){ // QuadraticPickNext
             if(i!= i_chosen && i != j_chosen){
                 Node cur_node = node.getSubnodes().get(i);
                 double area1 = pretendToExpandMBR(n1.getPolygon(), cur_node.getPolygon());
@@ -124,20 +113,96 @@ public class Rtree {
         return node;
     }
 
+    private int[] QuadraticPickSeeds(Node node) {
+        int[] tuple_ij = new int[]{0,0};
+        double best_area = -1;
+        for(int i = 0; i< node.getSubnodes().size(); i++){
+            for(int j = i; j< node.getSubnodes().size(); j++){// j = i  to avoid (0,1) and (1,0) which is == here
+                if(i != j){
+                    double area = pretendToExpandMBR(node.getSubnodes().get(i).getPolygon(), node.getSubnodes().get(j).getPolygon());
+                    if(best_area== -1 || best_area<area){
+                        best_area = area;
+                        tuple_ij[0] = i; tuple_ij[1] = j;
+                    }
+                }
+            }
+        }
+        return tuple_ij;
+    }
+
+    private Node splitLinear(Node node) {
+        int[] tuple_ij = LinearPickSeeds(node);
+        int i_chosen = tuple_ij[0]; int j_chosen = tuple_ij[1] ;
+        Node n1 = new Node(3, node.getSubnodes().get(i_chosen).getPolygon());
+        n1.addNode(node.getSubnodes().get(i_chosen));
+        Node n2 = new Node(3, node.getSubnodes().get(j_chosen).getPolygon());
+        n2.addNode(node.getSubnodes().get(j_chosen));
+        for(int i = 0; i<node.getSubnodes().size(); i++){ // LinearPickNext, trivial
+            if(i!= i_chosen && i != j_chosen){
+                Node cur_node = node.getSubnodes().get(i);
+                double area1 = pretendToExpandMBR(n1.getPolygon(), n1.getPolygon());
+                double area2 = pretendToExpandMBR(n2.getPolygon(), n2.getPolygon());
+                if(area1 < area2){
+                    n1.setPolygon(expandPolygon(n1.getPolygon(), cur_node.getPolygon()));
+                    n1.addNode(cur_node);
+                }else{
+                    n2.setPolygon(expandPolygon(n2.getPolygon(), cur_node.getPolygon()));
+                    n2.addNode(cur_node);
+                }
+                /*if(n1.getSubnodes().size() < n2.getSubnodes().size()){ // n1 has fewer children than n2 then add to n1
+                    n1.setPolygon(expandPolygon(n1.getPolygon(), cur_node.getPolygon()));
+                    n1.addNode(cur_node);
+                }else{
+                    n2.setPolygon(expandPolygon(n2.getPolygon(), cur_node.getPolygon()));
+                    n2.addNode(cur_node);
+                }
+
+                 */
+            }
+        }
+        node.removeSubnodes();
+        node.setPolygon(n1.getPolygon());
+        node.setPolygon(expandPolygon(node.getPolygon(), n2.getPolygon()));
+        node.addNode(n1);node.addNode(n2);
+        return node;
+    }
+
+    private int[] LinearPickSeeds(Node node) {
+        int[] tuple_ij = new int[]{0, 0};
+        double best_norm = -1;
+        boolean flipped = false;
+        for(int i = 0; i< node.getSubnodes().size(); i++){
+            for(int j = i; j< node.getSubnodes().size(); j++){
+                if(i != j){
+                    double minX = node.getSubnodes().get(i).getXcoords()[1]; //minX = lowest highside
+                    double maxX = node.getSubnodes().get(j).getXcoords()[0]; //maxX = highest lowside
+                    double L = calculateDistance(new double[]{minX, maxX});
+                    double minX_flipped = node.getSubnodes().get(j).getXcoords()[1]; //minX = lowest highside
+                    double maxX_flipped = node.getSubnodes().get(i).getXcoords()[0]; //maxX = highest lowside
+                    double L_flipped = calculateDistance(new double[]{minX_flipped, maxX_flipped});
+                    if(L>L_flipped){//(0,1) should be (1,0)
+                        flipped = true;
+                        L = L_flipped;
+                    }
+                    double W = calculateDistance(new double[]{node.getXcoords()[1], node.getXcoords()[0]});
+                    double norm = L/W;
+                    if(best_norm == -1 || best_norm<norm){
+                        best_norm = norm;
+                        tuple_ij[0] = i; tuple_ij[1] = j;
+                        if(flipped){ tuple_ij[0] = j; tuple_ij[1] = i;}
+                    }
+                }
+            }
+        }
+        return tuple_ij;
+    }
+
     private double[] getXcoordsPoly(Polygon p){
         return new double[]{p.getCoordinates()[0].getX(), p.getCoordinates()[2].getX()};
     }
 
     private double[] getYcoordsPoly(Polygon p){
         return new double[]{p.getCoordinates()[0].getY(), p.getCoordinates()[1].getY()};
-    }
-
-    private double[] getXcoordsMultiPoly(MultiPolygon p){
-        return new double[]{p.getBoundary().getEnvelope().getCoordinates()[0].getX(), p.getBoundary().getEnvelope().getCoordinates()[2].getX()};
-    }
-
-    private double[] getYcoordsMultiPoly(MultiPolygon p){
-        return new double[]{p.getBoundary().getEnvelope().getCoordinates()[0].getY(), p.getBoundary().getEnvelope().getCoordinates()[1].getY()};
     }
 
     public Node getRoot() {
@@ -155,7 +220,7 @@ public class Rtree {
             Leaf l = (Leaf) n;
             if(l.getComplexPolygon().contains(p)){
                 return l;
-            }else{return null;}
+            }else{return null;}//maybe add check to see if same leaf tested twice -> otherwise likely to test it infinetly
         }else{//MBD
             if(n.getPolygon().contains(p)){
                 for(Node c: n.getSubnodes()){
