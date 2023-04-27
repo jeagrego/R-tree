@@ -8,7 +8,6 @@ import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.GeometryBuilder;
-import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.FeatureLayer;
 import org.geotools.map.Layer;
 import org.geotools.map.MapContent;
@@ -18,27 +17,25 @@ import org.geotools.swing.JMapFrame;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 
 import java.awt.*;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.DoubleAdder;
 
 public class App 
 {
     public static void main( String[] args ) throws IOException {
         // display a data store file chooser dialog for shapefiles
-        String filename = "./src/main/resources/sh_statbel_statistical_sectors_31370_20220101.shp/sh_statbel_statistical_sectors_31370_20220101.shp";
+        //String filename = "./src/main/resources/sh_statbel_statistical_sectors_31370_20220101.shp/sh_statbel_statistical_sectors_31370_20220101.shp";
 
         //String filename="./src/main/resources/regions-20180101-shp/regions-20180101.shp";
 
-        //String filename="./src/main/resources/50m_cultural/ne_50m_admin_0_countries.shp";
-
         //String filename="./src/main/resources/wb_countries_admin0_10m/WB_countries_Admin0_10m.shp";
 
+        String filename="./src/main/resources/stanford-ukraine-map/pp624tm0074.shp";
 
         File file = new File(filename);
         if (!file.exists())
@@ -51,15 +48,13 @@ public class App
 
         store.dispose();
 
-        ReferencedEnvelope global_bounds = featureSource.getBounds();
-
-
         Random r = new Random();
 
-
         GeometryBuilder gb = new GeometryBuilder();
-        Point p = gb.point(182330, 93800);// just out of belgium -> infinity if not very high maxleaves value
+        //Point p = gb.point(182330, 93800);// just out of belgium
         //Point p = gb.point(152183, 167679);// Plaine
+        //Point p = gb.point(2.5, 50);// Picardie
+        Point p = gb.point(34, 48);// Ukraine 83
         //Point p = gb.point(4.4, 50.8);// Belgie
         //Point p = gb.point(58.0, 47.0);
         //Point p = gb.point(10.6,59.9);// Oslo
@@ -101,37 +96,48 @@ public class App
         collections.add(collection5); collections.add(collection6); collections.add(collection7);
         collections.add(collection8); collections.add(collection9); collections.add(collection10);
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
-        int maxLeaves = 500;
+        //FileWriter filew = new FileWriter("averagetime.txt");
+        int maxLeaves = 25;
         Rtree t = new Rtree(maxLeaves);
-
         Node root = t.getRoot();
-        //int counterDEBUG = 0;
-        long startTime; long estimatedTime;
-        long time_sum = 0;
-        int add_counter = 0;
-        try ( SimpleFeatureIterator iterator = all_features.features() ){
-            while( iterator.hasNext()){
-
+        //int counterDEBUG = 0; //doesnt add all countries at once
+        try (SimpleFeatureIterator iterator = all_features.features()) {
+            while (iterator.hasNext()) {
                 SimpleFeature feature = iterator.next();
                 MultiPolygon polygonComplex = (MultiPolygon) feature.getDefaultGeometry();//leaf
-
-                //feature.getAttribute("NAME_EN").toString()
+                //feature.getAttribute("NAME_EN").toString() //change name when change map for tests
                 //feature.getAttribute("T_PROVI_FR").toString()
-                startTime = System.nanoTime();
-                t.addLeaf(root, feature.getAttribute("T_PROVI_FR").toString(), polygonComplex);
-                estimatedTime = System.nanoTime() - startTime;
-                time_sum = time_sum + estimatedTime;
-                add_counter++;
+                //feature.getAttribute("nom").toString()
+                //feature.getAttribute("FID").toString()
+                t.addLeaf(root, feature.getAttribute("FID").toString(), polygonComplex);
                 //counterDEBUG++;
                 //if (counterDEBUG == 6){
                 //    break;
                 //}
             }
         }
-        long averageTime = time_sum/(add_counter* 1000L);
-        System.out.println("AVERAGE INSERT TIME : "+averageTime+"µs");
         //DEBUG
         //showAllNodesAndLeaves(collections, featureBuilder, maxLeaves, t);
+
+        //SEARCH TESTS
+        /*
+        Leaf leafFound = null;
+        double sum = 0; int maxrepeat = 100;
+        for(int i=0; i<maxrepeat; i++) {
+            double startTime = System.nanoTime();
+            leafFound = t.search(p);
+            double estimatedTime = (System.nanoTime() - startTime) / 1000000;
+            sum += estimatedTime;
+            System.out.println("SEARCH TIME : " + estimatedTime + "ms");
+        }
+        try {
+            filew.write(sum/maxrepeat + "\n");
+            filew.close();
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        */
         Leaf leafFound = t.search(p);
 
         if (leafFound == null)

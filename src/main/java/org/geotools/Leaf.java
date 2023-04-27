@@ -4,20 +4,18 @@ import org.geotools.geometry.jts.GeometryBuilder;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 
-import java.util.Arrays;
-
 public class Leaf extends Node{
-    private String name;
+    private final String name;
     private final MultiPolygon complexPolygon;
 
     public Leaf(int maxN, String id, MultiPolygon p) {
         super(maxN, null);
         this.complexPolygon = p;
         this.name = id;
-        super.setPolygon(createMBDfromMultiPolygon(p));
+        super.setPolygon(createMBRfromMultiPolygon(p));
     }
 
-    private Polygon createMBDfromMultiPolygon(MultiPolygon mp){
+    private Polygon createMBRfromMultiPolygon(MultiPolygon mp){
         GeometryBuilder gb = new GeometryBuilder();
         return gb.box(this.getXcoordsMultiPoly(mp)[0],
                 this.getYcoordsMultiPoly(mp)[0],

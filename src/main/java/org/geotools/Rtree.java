@@ -1,19 +1,17 @@
 package org.geotools;
 
 import org.geotools.geometry.jts.GeometryBuilder;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.opengis.feature.simple.SimpleFeature;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 
 public class Rtree {
-    private Node n;
+    private final Node n;
     int N=3; // max amount of leaves or nodes
 
-    public Rtree(int N){
+    public Rtree(int N) {
         this.n = new Node(N, null);
         this.N = N;
     }
@@ -31,7 +29,7 @@ public class Rtree {
         }
         node.setPolygon(expandPolygon(node.getPolygon(), (Polygon) p.getEnvelope()));
         if(node.getSubnodes().size() > N){
-            return splitQuadratic(node);
+            return splitLinear(node); //return splitQuadratic(node);
         }
         else{return null;}
     }
@@ -140,8 +138,8 @@ public class Rtree {
         for(int i = 0; i<node.getSubnodes().size(); i++){ // LinearPickNext, trivial
             if(i!= i_chosen && i != j_chosen){
                 Node cur_node = node.getSubnodes().get(i);
-                double area1 = pretendToExpandMBR(n1.getPolygon(), n1.getPolygon());
-                double area2 = pretendToExpandMBR(n2.getPolygon(), n2.getPolygon());
+                double area1 = pretendToExpandMBR(n1.getPolygon(), n1.getPolygon());//here used to only get area of n1
+                double area2 = pretendToExpandMBR(n2.getPolygon(), n2.getPolygon());//here used to only get area of n2
                 if(area1 < area2){
                     n1.setPolygon(expandPolygon(n1.getPolygon(), cur_node.getPolygon()));
                     n1.addNode(cur_node);
@@ -149,15 +147,14 @@ public class Rtree {
                     n2.setPolygon(expandPolygon(n2.getPolygon(), cur_node.getPolygon()));
                     n2.addNode(cur_node);
                 }
-                /*if(n1.getSubnodes().size() < n2.getSubnodes().size()){ // n1 has fewer children than n2 then add to n1
+                /*//more trivial but slower
+                if(n1.getSubnodes().size() < n2.getSubnodes().size()){ // n1 has fewer children than n2 then add to n1
                     n1.setPolygon(expandPolygon(n1.getPolygon(), cur_node.getPolygon()));
                     n1.addNode(cur_node);
                 }else{
                     n2.setPolygon(expandPolygon(n2.getPolygon(), cur_node.getPolygon()));
                     n2.addNode(cur_node);
-                }
-
-                 */
+                }*/
             }
         }
         node.removeSubnodes();
@@ -172,7 +169,7 @@ public class Rtree {
         double best_norm = -1;
         boolean flipped = false;
         for(int i = 0; i< node.getSubnodes().size(); i++){
-            for(int j = i; j< node.getSubnodes().size(); j++){
+            for(int j = i; j< node.getSubnodes().size(); j++){// j = i  because both (0,1) and (1,0) are tested
                 if(i != j){
                     double minX = node.getSubnodes().get(i).getXcoords()[1]; //minX = lowest highside
                     double maxX = node.getSubnodes().get(j).getXcoords()[0]; //maxX = highest lowside
@@ -211,21 +208,24 @@ public class Rtree {
 
     public Leaf search(Point p) {
         if(this.getRoot().getPolygon().contains(p)){
-            return searchRecursive(this.n, p);
+            return searchRecursive(this.n, p, new ArrayList<>());
         }else{return null;}
     }
 
-    public Leaf searchRecursive(Node n, Point p) {
+    //The "visited" list is used to not get infinite loops, it slightly deviates from the original search function pseudocode
+    public Leaf searchRecursive(Node n, Point p, ArrayList<Node> visited) {
         if (n.getSubnodes().size() == 0){//leaf
             Leaf l = (Leaf) n;
             if(l.getComplexPolygon().contains(p)){
                 return l;
-            }else{return null;}//maybe add check to see if same leaf tested twice -> otherwise likely to test it infinetly
-        }else{//MBD
+            }else{
+                return null;}
+        }else{//MBR
+            visited.add(n);
             if(n.getPolygon().contains(p)){
                 for(Node c: n.getSubnodes()){
-                    if(c.getPolygon().contains(p)){
-                        Leaf leafFound = searchRecursive(c, p);
+                    if(c.getPolygon().contains(p) && !visited.contains(c)){
+                        Leaf leafFound = searchRecursive(c, p, visited);
                         if(leafFound != null){
                             return leafFound;
                         }

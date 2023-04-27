@@ -1,7 +1,5 @@
 package org.geotools;
 
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.ArrayList;
