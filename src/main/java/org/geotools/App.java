@@ -33,9 +33,9 @@ public class App
 
         //String filename="./src/main/resources/regions-20180101-shp/regions-20180101.shp";
 
-        //String filename="./src/main/resources/wb_countries_admin0_10m/WB_countries_Admin0_10m.shp";
+        String filename="./src/main/resources/wb_countries_admin0_10m/WB_countries_Admin0_10m.shp";
 
-        String filename="./src/main/resources/stanford-ukraine-map/pp624tm0074.shp";
+        //String filename="./src/main/resources/stanford-ukraine-map/pp624tm0074.shp";
 
         File file = new File(filename);
         if (!file.exists())
@@ -54,8 +54,8 @@ public class App
         //Point p = gb.point(182330, 93800);// just out of belgium
         //Point p = gb.point(152183, 167679);// Plaine
         //Point p = gb.point(2.5, 50);// Picardie
-        Point p = gb.point(34, 48);// Ukraine 83
-        //Point p = gb.point(4.4, 50.8);// Belgie
+        //Point p = gb.point(34, 48);// Ukraine 83
+        Point p = gb.point(4.4, 50.8);// Belgie
         //Point p = gb.point(58.0, 47.0);
         //Point p = gb.point(10.6,59.9);// Oslo
 
@@ -97,7 +97,7 @@ public class App
         collections.add(collection8); collections.add(collection9); collections.add(collection10);
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureSource.getSchema());
         //FileWriter filew = new FileWriter("averagetime.txt");
-        int maxLeaves = 25;
+        int maxLeaves = 6;
         Rtree t = new Rtree(maxLeaves);
         Node root = t.getRoot();
         //int counterDEBUG = 0; //doesnt add all countries at once
@@ -109,7 +109,7 @@ public class App
                 //feature.getAttribute("T_PROVI_FR").toString()
                 //feature.getAttribute("nom").toString()
                 //feature.getAttribute("FID").toString()
-                t.addLeaf(root, feature.getAttribute("FID").toString(), polygonComplex);
+                t.addLeaf(root, feature.getAttribute("NAME_EN").toString(), polygonComplex);
                 //counterDEBUG++;
                 //if (counterDEBUG == 6){
                 //    break;
@@ -120,8 +120,8 @@ public class App
         //showAllNodesAndLeaves(collections, featureBuilder, maxLeaves, t);
 
         //SEARCH TESTS
-        /*
-        Leaf leafFound = null;
+
+        /*Leaf leafFound = null;
         double sum = 0; int maxrepeat = 100;
         for(int i=0; i<maxrepeat; i++) {
             double startTime = System.nanoTime();
@@ -136,8 +136,8 @@ public class App
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
-        }
-        */
+        }*/
+
         Leaf leafFound = t.search(p);
 
         if (leafFound == null)

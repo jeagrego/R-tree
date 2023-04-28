@@ -12,10 +12,18 @@ public class Node {
         this.MBR = p;
     }
 
+    /***
+     * Get the min_x and the max_x coordinates of the MBR Polygon
+     * @return int[0] min_x, int[1] max_x;
+     */
     public double[] getXcoords(){
         return new double[]{MBR.getCoordinates()[0].getX(), MBR.getCoordinates()[2].getX()};
     }
 
+    /***
+     * Get the min_y and the max_y coordinates of the MBR Polygon
+     * @return int[0] min_y, int[1] max_y;
+     */
     public double[] getYcoords(){
         return new double[]{MBR.getCoordinates()[0].getY(), MBR.getCoordinates()[1].getY()};
     }

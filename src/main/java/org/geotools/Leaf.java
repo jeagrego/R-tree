@@ -23,10 +23,20 @@ public class Leaf extends Node{
                 this.getYcoordsMultiPoly(mp)[1]);
     }
 
+    /***
+     * Used only to create the MBR of the leaf
+     * Get the min_x and the max_x coordinates of the MultiPolygon
+     * @return int[0] min_x, int[1] max_x;
+     */
     private double[] getXcoordsMultiPoly(MultiPolygon p){
         return new double[]{p.getBoundary().getEnvelope().getCoordinates()[0].getX(),  p.getBoundary().getEnvelope().getCoordinates()[2].getX()};
     }
 
+    /***
+     * Used only to create the MBR of the leaf
+     * Get the min_y and the max_y coordinates of the MultiPolygon
+     * @return int[0] min_y, int[1] max_y;
+     */
     private double[] getYcoordsMultiPoly(MultiPolygon p){
         return new double[]{p.getBoundary().getEnvelope().getCoordinates()[0].getY(), p.getBoundary().getEnvelope().getCoordinates()[1].getY()};
     }
